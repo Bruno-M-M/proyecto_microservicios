@@ -34,11 +34,6 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obtiene un producto", description = "Obtiene un producto por su Id")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Producto encontrado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No hay producto con ese Id")
-    })
     public ResponseEntity<Product> getById(@PathVariable Long id){
         try {
             Product product = productService.getProductById(id);
@@ -49,21 +44,11 @@ public class ProductController {
     }
 
     @GetMapping("/categoria/{categoria}")
-    @Operation(summary = "Obtiene productos por categoria", description = "Obtiene todos los productos que pertenezcan a la categoria")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Categoria listada exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No existe esa categora")
-    })
     public List<Product> getProductByCategory(@PathVariable String categoria){
         return productService.getProductByCategory(categoria);
     }
 
     @PostMapping
-    @Operation(summary = "Agrega un producto", description = "Agrega un producto a la base de datos con sus datos")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Producto agregado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No se logro agregar nuevo producto")
-    })
     public ResponseEntity<?> crearProduct(@RequestBody Product product){
         try{
             Product product2 = productService.createProduct(product);
@@ -74,11 +59,6 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualiza un producto", description = "Actualiza un producto por su Id")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Producto actualizado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No se logro actualizar el producto")
-    })
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Product product){
         try{
             return ResponseEntity.ok(productService.updateProduct(id, product));
@@ -88,11 +68,6 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Elimina un producto", description = "Elimina un producto por su Id")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Producto eliminado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No se logro eliminar el producto")
-    })
     public ResponseEntity<?> delete(@PathVariable Long id){
         try{
             productService.deleteProduct(id);
@@ -103,21 +78,11 @@ public class ProductController {
     }
 
     @GetMapping("/{id}/check-stock")
-    @Operation(summary = "Revisa si hay stock", description = "Revisa si existe la cantidad que el usuario necesite para su pedido")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Existe stock suficiente"),
-            @ApiResponse(responseCode = "404", description = "No hay suficiente stock")
-    })
     public ResponseEntity<Boolean> checkStock(@PathVariable Long id, @RequestParam Integer cantidad){
         return ResponseEntity.ok(productService.checkStock(id, cantidad));
     }
 
     @PutMapping("/{id}/reduce-stock")
-    @Operation(summary = "Reduce el stock", description = "Reduce el stock al ser pagado el producto")//pagado o confirmado?
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Stocl reducido exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No se logro reducir el stock")
-    })
     public ResponseEntity<Void> reduceStock(@PathVariable Long id, @RequestParam Integer cantidad){
         productService.reduceStock(id, cantidad);
         return ResponseEntity.ok().build();

@@ -73,7 +73,7 @@ public class ClienteController {
     @PostMapping("/register")
     @Operation(summary = "Se registra un cliente", description = "Se registra un cliente con sus datos y se agrega a la base de datos")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Cliente registrado exitosamente"),
+            @ApiResponse(responseCode = "200", description = "Cliente registrado exitosamente"),
             @ApiResponse(responseCode = "404", description = "No se encontro cliente con ese Id")
     })
     public ResponseEntity<?> registrar(@Valid @RequestBody ClienteRequestDTO dto){
@@ -107,7 +107,7 @@ public class ClienteController {
     @Operation(summary = "Se elimina un cliente", description = "Se elimina un cliente por si Id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cliente eliminado con exito"),
-            @ApiResponse(responseCode = "404", description = "No se logro agregar nuevo cliente")
+            @ApiResponse(responseCode = "404", description = "No se encontro cliente con ese Id")
     })
     public ResponseEntity<?> delete(@PathVariable Long id){
         clienteService.deleteCliente(id);

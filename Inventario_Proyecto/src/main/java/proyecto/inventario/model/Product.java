@@ -43,11 +43,6 @@ public class Product {
     @NotBlank(message = "El producto debe pertenecer a alguna categoria")
     @Size(max = 50)
     @Column(nullable = false, length = 50)
-    private Categorias categoria;
-
-    //agregar mas categorias de ser necesario
-    public enum Categorias {
-            Despensa, Carnes, Lacteos, Limpieza
-    }
+    private String categoria;
 
 }

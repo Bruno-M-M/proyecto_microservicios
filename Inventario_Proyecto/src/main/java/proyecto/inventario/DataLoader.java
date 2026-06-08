@@ -10,7 +10,7 @@ import proyecto.inventario.repository.ProductRepository;
 
 import java.util.Random;
 
-@Profile("dev")//"test" para que funcione el test
+@Profile("test")//"test" para que funcione el test
 @Component
 public class DataLoader implements CommandLineRunner {
 
@@ -21,6 +21,7 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception{
         Faker faker = new Faker();
         Random random = new Random();
+        Product.Categorias[] categorias = Product.Categorias.values();
 
         for (int i = 0; i < 10; i++){
             Product product = new Product();
@@ -28,7 +29,7 @@ public class DataLoader implements CommandLineRunner {
             product.setDescripcion(faker.pokemon().name());
             product.setPrecio(random.nextInt(1, 99999999));
             product.setStock(random.nextInt(10,9999));
-            product.getCategoria(Product.Categorias.);//random de categoria
+            product.setCategoria(categorias[random.nextInt(categorias.length)]);
             productRepository.save(product);
         }
     }

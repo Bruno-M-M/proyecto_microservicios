@@ -20,11 +20,11 @@ public class DataInitializer implements CommandLineRunner {
             log.info(">>> Productos ya cargados. Se omite inicializacion");
             return;
         }
-        repository.save(new Product(null,"Chocapic", "Cereal sabor chocolate 400gr", 2990, 50, "Despensa"));
-        repository.save(new Product(null,"Nescafe seleccion", "Cafe instantaneo soluble 200gr", 12990, 40, "Despensa"));
-        repository.save(new Product(null, "Poett frescura lavanda", "Limpiapiso con aroma a lavanda 900ml", 1730, 64, "Limpieza"));
-        repository.save(new Product(null, "Leche Colun entera", "Leche colun entera obtenida a partir de leche fresca 1lt", 1380, 85, "Lacteos"));
-        repository.save(new Product(null, "Filetitos de pollo", "Filetitos de pechuga de pollo 700gr", 7490, 36, "Carnes"));
+        repository.save(new Product(null,"Chocapic", "Cereal sabor chocolate 400gr", 2990, 50, Product.Categorias.Despensa));
+        repository.save(new Product(null,"Nescafe seleccion", "Cafe instantaneo soluble 200gr", 12990, 40, Product.Categorias.Despensa));
+        repository.save(new Product(null, "Poett frescura lavanda", "Limpiapiso con aroma a lavanda 900ml", 1730, 64, Product.Categorias.Limpieza));
+        repository.save(new Product(null, "Leche Colun entera", "Leche colun entera obtenida a partir de leche fresca 1lt", 1380, 85, Product.Categorias.Lacteos));
+        repository.save(new Product(null, "Filetitos de pollo", "Filetitos de pechuga de pollo 700gr", 7490, 36, Product.Categorias.Carnes));
         log.info(">>> 5 Productos cargados Ok.");
     }
 }

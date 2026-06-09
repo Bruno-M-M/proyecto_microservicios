@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import proyecto.inventario.model.Product;
 import proyecto.inventario.repository.ProductRepository;
 
+import java.util.List;
 import java.util.Random;
 
 @Profile("test")//"test" para que funcione el test
@@ -32,6 +33,8 @@ public class DataLoader implements CommandLineRunner {
             product.setCategoria(categorias[random.nextInt(categorias.length)]);
             productRepository.save(product);
         }
+
+        List<Product> productList = productRepository.findAll();
     }
 
 }

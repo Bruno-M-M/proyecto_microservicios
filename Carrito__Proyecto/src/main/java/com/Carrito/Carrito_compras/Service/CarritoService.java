@@ -3,6 +3,7 @@ package com.Carrito.Carrito_compras.Service;
 import com.Carrito.Carrito_compras.Client.ClienteFeingClient;
 import com.Carrito.Carrito_compras.Client.InventarioFeingClient;
 import com.Carrito.Carrito_compras.DTO.*;
+import com.Carrito.Carrito_compras.Exception.ResourceNotFound;
 import com.Carrito.Carrito_compras.Model.Carrito;
 import com.Carrito.Carrito_compras.Model.CarritoItem;
 import com.Carrito.Carrito_compras.Repository.CarritoRepository;
@@ -53,9 +54,7 @@ public class CarritoService {
         try {
             return inventarioClient.getProductoById(productoId);
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("Producto no encontrado con ID: " + productoId);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al conectar con el servicio de inventario: " + e.getMessage());
+            throw new ResourceNotFound("Producto no encontrado con ID: " + productoId);
         }
     }
 
@@ -144,10 +143,9 @@ public class CarritoService {
                             "Ajusta la cantidad del ítem duplicado.");
         }
 
-        // Validar cliente
+
         obtenerCliente(request.getClienteId());
 
-        // Validar existencia y stock de todos los ítems antes de guardar nada
         for (CarritoItemRequestDTO itemReq : request.getItems()) {
             obtenerProducto(itemReq.getProductoId());
             if (!verificarStock(itemReq.getProductoId(), itemReq.getCantidad())) {
@@ -156,13 +154,11 @@ public class CarritoService {
             }
         }
 
-        // Persistir cabecera
         Carrito carrito = new Carrito();
         carrito.setClienteId(request.getClienteId());
         carrito.setEstado(Carrito.EstadoPedido.PENDIENTE);
         carrito.setFechaCreacion(LocalDateTime.now());
 
-        // Persistir ítems
         for (CarritoItemRequestDTO itemReq : request.getItems()) {
             ProductoDTO producto = obtenerProducto(itemReq.getProductoId());
             CarritoItem item = new CarritoItem();
@@ -234,7 +230,6 @@ public class CarritoService {
 
 
         carrito.setEstado(Carrito.EstadoPedido.PAGADO);
-        carrito.setFechaConfirmacion(LocalDateTime.now());
         carritoRepository.save(carrito);
         return construirDetalle(carrito);
     }
@@ -258,7 +253,11 @@ public class CarritoService {
     }
 
     public long countPedidosPorMes(Long clienteId, int mes, int anio) {
-        return carritoRepository.countConfirmadosByClienteYMes(clienteId, mes, anio);
+        return carritoRepository.countConfirmadosByClienteYMes(
+                clienteId, mes, anio,
+                Carrito.EstadoPedido.PAGADO,
+                Carrito.EstadoPedido.CONFIRMADO
+        );
     }
 
     public long countPedidosPorAnio(Long clienteId, int anio) {

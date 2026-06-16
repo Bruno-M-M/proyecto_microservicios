@@ -1,4 +1,4 @@
-package proyecto.cliente.config;
+package com.Carrito.Carrito_compras.Config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;

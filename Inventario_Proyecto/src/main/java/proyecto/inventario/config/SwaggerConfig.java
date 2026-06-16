@@ -13,7 +13,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API 2026 Inventario")
-                        .version("1.0")
+                        .version("1.4")
                         .description("Documentacion de la API para el sistema de gestion de productos e inventario")
                 );
     }

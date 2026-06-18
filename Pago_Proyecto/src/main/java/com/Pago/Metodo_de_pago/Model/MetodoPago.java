@@ -1,9 +1,12 @@
 package com.Pago.Metodo_de_pago.Model;
 
+import com.Pago.Metodo_de_pago.Controller.BoletaController;
+import com.Pago.Metodo_de_pago.DTO.BoletaResponseDTO;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.hateoas.EntityModel;
 
 import java.time.LocalDateTime;
 
@@ -66,4 +69,6 @@ public class MetodoPago {
     public enum EstadoBoleta {
         EMITIDA, ANULADA
     }
+
+
 }

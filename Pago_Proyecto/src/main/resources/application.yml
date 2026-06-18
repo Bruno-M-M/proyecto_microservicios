@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: Metodo_de_pago
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_boletas?useSSL=false&serverTimezone=UTC
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false
+
+server:
+  port: 8084
+
+microservicio:
+  carrito:
+    url: http://localhost:8083/api/v1/Carrito
+  clientes:
+    url: http://localhost:8082/api/clientes
+
+springdoc:
+  hateoasRestHandlerMappingEnabled: false
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

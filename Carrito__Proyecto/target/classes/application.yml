@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: Carrito_compras
+    name: carrito-compras
   datasource:
     url: jdbc:mysql://localhost:3306/db_carrito_compras
     username: root
@@ -18,12 +18,16 @@ spring:
         format_sql: true
   flyway:
     enabled: false
+  cloud:                          # <- agregar esto
+    loadbalancer:
+      retry:
+        enabled: false
 
 microservicio:
   clientes:
-    url: http://localhost:8082/api/clientes
+    url: http://cliente/api/clientes      # <- minúsculas
   inventario:
-    url: http://localhost:8081/api/products
+    url: http://inventario/api/products   # <- minúsculas
 
 springdoc:
   api-docs:

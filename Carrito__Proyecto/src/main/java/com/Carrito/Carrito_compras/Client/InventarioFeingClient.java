@@ -4,15 +4,15 @@ import com.Carrito.Carrito_compras.DTO.ProductoDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "inventario", url = "${microservicio.inventario.url}")
+@FeignClient(name = "INVENTARIO")
 public interface InventarioFeingClient {
 
-    @GetMapping("/{id}")
+    @GetMapping("/api/products/{id}")
     ProductoDTO getProductoById(@PathVariable("id") Long id);
 
-    @GetMapping("/{id}/check-stock")
+    @GetMapping("/api/products/{id}/check-stock")
     Boolean checkStock(@PathVariable("id") Long id, @RequestParam("cantidad") Integer cantidad);
 
-    @PutMapping("/{id}/reduce-stock")
+    @PutMapping("/api/products/{id}/reduce-stock")
     void reduceStock(@PathVariable("id") Long id, @RequestParam("cantidad") Integer cantidad);
 }

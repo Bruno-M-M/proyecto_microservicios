@@ -12,12 +12,15 @@ public interface CarritoRepository  extends JpaRepository<Carrito,Long> {
     List<Carrito> findByEstado(Carrito.EstadoPedido estado);
 
     @Query("SELECT COUNT(c) FROM Carrito c WHERE c.clienteId = :clienteId " +
-            "AND (c.estado = 'PAGADO' OR c.estado = 'CONFIRMADO') " +
+            "AND (c.estado = :est1 OR c.estado = :est2) " +
             "AND MONTH(c.fechaConfirmacion) = :mes " +
             "AND YEAR(c.fechaConfirmacion) = :anio")
     long countConfirmadosByClienteYMes(@Param("clienteId") Long clienteId,
-                                               @Param("mes") int mes,
-                                               @Param("anio") int anio);
+                                       @Param("mes") int mes,
+                                       @Param("anio") int anio,
+                                       @Param("est1") Carrito.EstadoPedido est1,
+                                       @Param("est2") Carrito.EstadoPedido est2);
+
 
     @Query("SELECT COUNT(c) FROM Carrito c WHERE c.clienteId = :clienteId " +
             "AND c.estado = 'PAGADO' " +

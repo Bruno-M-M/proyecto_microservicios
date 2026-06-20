@@ -3,6 +3,7 @@ package com.Carrito.Carrito_compras.Controller;
 import com.Carrito.Carrito_compras.DTO.CarritoDetalleDTO;
 import com.Carrito.Carrito_compras.DTO.CarritoRequestDTO;
 import com.Carrito.Carrito_compras.Model.Carrito;
+import com.Carrito.Carrito_compras.Model.CarritoModelAssembler;
 import com.Carrito.Carrito_compras.Service.CarritoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,9 +14,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +31,8 @@ public class CarritoController {
     @Autowired
     private CarritoService carritoService;
 
+    @Autowired
+    private CarritoModelAssembler carritoAssembler;
     /******************************************************************************************/
     @Operation(
             summary = "Obtener todos los pedidos",
@@ -42,8 +49,11 @@ public class CarritoController {
             )
     })
     @GetMapping
-    public ResponseEntity<List<CarritoDetalleDTO>> getTodo() {
-        return ResponseEntity.ok(carritoService.getTodo());
+    public ResponseEntity<CollectionModel<EntityModel<CarritoDetalleDTO>>> getTodo() {
+        List<EntityModel<CarritoDetalleDTO>> carritos = carritoService.getTodo()
+                .stream().map(carritoAssembler::toModel).toList();
+        return ResponseEntity.ok(CollectionModel.of(carritos,
+                linkTo(methodOn(CarritoController.class).getTodo()).withSelfRel()));
     }
     /******************************************************************************************/
     @Operation(
@@ -62,8 +72,11 @@ public class CarritoController {
             @ApiResponse(responseCode = "404", description = "Cliente no encontrado", content = @Content)
     })
     @GetMapping("/cliente/{clienteId}")
-    public ResponseEntity<List<CarritoDetalleDTO>> getByCliente(@PathVariable Long clienteId) {
-        return ResponseEntity.ok(carritoService.getByCliente(clienteId));
+    public ResponseEntity<CollectionModel<EntityModel<CarritoDetalleDTO>>> getByCliente(@PathVariable Long clienteId) {
+        List<EntityModel<CarritoDetalleDTO>> carritos = carritoService.getByCliente(clienteId)
+                .stream().map(carritoAssembler::toModel).toList();
+        return ResponseEntity.ok(CollectionModel.of(carritos,
+                linkTo(methodOn(CarritoController.class).getByCliente(clienteId)).withSelfRel()));
     }
 /******************************************************************************************/
     @Operation(
@@ -82,15 +95,11 @@ public class CarritoController {
             @ApiResponse(responseCode = "400", description = "Estado inválido", content = @Content)
     })
     @GetMapping("/estado/{estado}")
-    public ResponseEntity<List<CarritoDetalleDTO>> getByEstado(
-            @Parameter(
-                    description = "Estado del pedido",
-                    required = true,
-                    example = "PENDIENTE",
-                    schema = @Schema(allowableValues = {"PENDIENTE", "CONFIRMADO", "CANCELADO", "PAGADO"})
-            )
-            @PathVariable String estado) {
-        return ResponseEntity.ok(carritoService.getByEstado(estado));
+    public ResponseEntity<CollectionModel<EntityModel<CarritoDetalleDTO>>> getByEstado(@PathVariable String estado) {
+        List<EntityModel<CarritoDetalleDTO>> carritos = carritoService.getByEstado(estado)
+                .stream().map(carritoAssembler::toModel).toList();
+        return ResponseEntity.ok(CollectionModel.of(carritos,
+                linkTo(methodOn(CarritoController.class).getByEstado(estado)).withSelfRel()));
     }
 
     /******************************************************************************************/
@@ -111,14 +120,8 @@ public class CarritoController {
             @ApiResponse(responseCode = "404", description = "Cliente o producto no encontrado", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<CarritoDetalleDTO> agregar(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Datos del nuevo pedido",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = CarritoRequestDTO.class))
-            )
-            @Valid @RequestBody CarritoRequestDTO request) {
-        return ResponseEntity.status(201).body(carritoService.agregar(request));
+    public ResponseEntity<EntityModel<CarritoDetalleDTO>> agregar(@Valid @RequestBody CarritoRequestDTO request) {
+        return ResponseEntity.status(201).body(carritoAssembler.toModel(carritoService.agregar(request)));
     }
     /******************************************************************************************/
     @Operation(
@@ -138,11 +141,10 @@ public class CarritoController {
             @ApiResponse(responseCode = "400", description = "El pedido no puede confirmarse en su estado actual", content = @Content)
     })
     @PutMapping("/{id}/confirmar")
-    public ResponseEntity<CarritoDetalleDTO> confirmar(
-            @Parameter(description = "ID del pedido a confirmar", required = true, example = "1")
-            @PathVariable Long id) {
-        return ResponseEntity.ok(carritoService.confirmar(id));
+    public ResponseEntity<EntityModel<CarritoDetalleDTO>> confirmar(@PathVariable Long id) {
+        return ResponseEntity.ok(carritoAssembler.toModel(carritoService.confirmar(id)));
     }
+
     /******************************************************************************************/
 
     @Operation(summary = "Cancelar pedido",
@@ -154,15 +156,8 @@ public class CarritoController {
             @ApiResponse(responseCode = "400", description = "El pedido no se puede cancelar")
     })
     @PutMapping("/{id}/cancelar")
-    public ResponseEntity<CarritoDetalleDTO> cancelar(
-            @PathVariable
-            @Parameter(description = "ID del pedido a cancelar",
-                    required = true,
-                    example = "1")
-            Long id) {
-
-        CarritoDetalleDTO resultado = carritoService.cancelar(id);
-        return ResponseEntity.ok(resultado);
+    public ResponseEntity<EntityModel<CarritoDetalleDTO>> cancelar(@PathVariable Long id) {
+        return ResponseEntity.ok(carritoAssembler.toModel(carritoService.cancelar(id)));
     }
 /*****************************************************************************/
 @Operation(
@@ -182,10 +177,8 @@ public class CarritoController {
         @ApiResponse(responseCode = "400", description = "El pedido no puede marcarse como pagado en su estado actual", content = @Content)
 })
 @PutMapping("/{id}/pagar")
-public ResponseEntity<CarritoDetalleDTO> marcarComoPagado(
-        @Parameter(description = "ID del pedido a marcar como pagado", required = true, example = "1")
-        @PathVariable Long id) {
-    return ResponseEntity.ok(carritoService.marcarComoPagado(id));
+public ResponseEntity<EntityModel<CarritoDetalleDTO>> marcarComoPagado(@PathVariable Long id) {
+    return ResponseEntity.ok(carritoAssembler.toModel(carritoService.marcarComoPagado(id)));
 }
 
 /*********************************************************************************/

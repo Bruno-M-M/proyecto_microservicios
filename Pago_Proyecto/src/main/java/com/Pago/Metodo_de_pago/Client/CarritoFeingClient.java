@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 
-@FeignClient(name= "carrito", url ="${microservicio.carrito.url}")
+@FeignClient(name = "CARRITO-COMPRAS", path = "/api/v1/Carrito")
 
 public interface CarritoFeingClient {
 

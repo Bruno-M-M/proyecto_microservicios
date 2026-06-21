@@ -1,3 +1,3 @@
-Version 1.10
+Version 1.11
 
-Se implementaron las dependencias solicitadas por el profesor en cliente y inventario
+Version con todos los microservicios funcionando solo hace falta hacer las pruebas correspondientes para asegurar el buen funcionamiento

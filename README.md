@@ -1,3 +1,3 @@
-Version 1.7
+Version 1.10
 
-Actaulizacion e implementacion de dependencias en cliente e inventario y rutas agregadas a api-gateway
+Se implementaron las dependencias solicitadas por el profesor en cliente y inventario

@@ -4,12 +4,22 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import proyecto.inventario.model.Product;
+import proyecto.inventario.assemblers.ProductModelAssembler;
+import proyecto.inventario.dto.ProductRequestDTO;
+import proyecto.inventario.dto.ProductResponseDTO;
 import proyecto.inventario.service.ProductService;
+
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/api/products")
@@ -19,33 +29,33 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
-    @GetMapping
+    @Autowired
+    private ProductModelAssembler assembler;
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(summary = "Obtiene todos los productos", description = "Obtiene todos los productos y los muestra en una lista")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Productos listados exitosamente"),
             @ApiResponse(responseCode = "404", description = "No hay productos en el inventario")
     })
-    public ResponseEntity<List<Product>> getAllProduct(){
-        List<Product> products = productService.getProducts();
-        if(products.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(products);
+    public CollectionModel<EntityModel<ProductResponseDTO>> getAllProduct(){
+        List<EntityModel<ProductResponseDTO>> products = productService.getProducts().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+
+        return CollectionModel.of(products,
+                linkTo(methodOn(ProductController.class).getAllProduct()).withSelfRel());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}", produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(summary = "Obtiene un producto", description = "Obtiene un producto por su Id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Producto encontrado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No hay producto con ese Id")
+            @ApiResponse(responseCode = "400", description = "No hay producto con ese Id")
     })
-    public ResponseEntity<Product> getById(@PathVariable Long id){
-        try {
-            Product product = productService.getProductById(id);
-            return ResponseEntity.ok(product);
-        }catch(Exception e){
-            return ResponseEntity.notFound().build();
-        }
+    public EntityModel<ProductResponseDTO> getById(@PathVariable Long id){
+        ProductResponseDTO product = productService.getProductById(id);
+        return assembler.toModel(product);
     }
 
     @GetMapping("/categoria/{categoria}")
@@ -54,7 +64,7 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Categoria listada exitosamente"),
             @ApiResponse(responseCode = "404", description = "No existe esa categora")
     })
-    public List<Product> getProductByCategory(@PathVariable String categoria){
+    public List<ProductResponseDTO> getProductByCategory(@PathVariable String categoria){
         return productService.getProductByCategory(categoria);
     }
 
@@ -64,10 +74,10 @@ public class ProductController {
             @ApiResponse(responseCode = "201", description = "Producto agregado exitosamente"),
             @ApiResponse(responseCode = "404", description = "No se logro agregar nuevo producto")
     })
-    public ResponseEntity<?> crearProduct(@RequestBody Product product){
+    public ResponseEntity<?> crearProduct(@Valid @RequestBody ProductRequestDTO dto){
         try{
-            Product product2 = productService.createProduct(product);
-            return ResponseEntity.status(201).body(product2);
+            ProductResponseDTO product = productService.createProduct(dto);
+            return ResponseEntity.status(201).body(product);
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         }
@@ -79,9 +89,9 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Producto actualizado exitosamente"),
             @ApiResponse(responseCode = "404", description = "No se logro actualizar el producto")
     })
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Product product){
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO dto){
         try{
-            return ResponseEntity.ok(productService.updateProduct(id, product));
+            return ResponseEntity.ok(productService.updateProduct(id, dto));
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         }

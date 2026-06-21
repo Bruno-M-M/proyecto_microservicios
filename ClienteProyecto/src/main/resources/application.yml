@@ -2,4 +2,4 @@ spring:
   application:
     name: cliente
   profiles:
-    active: test  #test o dev
+    active: dev  #test o dev

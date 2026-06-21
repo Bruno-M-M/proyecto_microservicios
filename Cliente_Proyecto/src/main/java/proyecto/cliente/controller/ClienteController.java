@@ -6,8 +6,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import proyecto.cliente.assemblers.ClienteModelAssembler;
 import proyecto.cliente.dto.ClienteRequestDTO;
 import proyecto.cliente.dto.ClienteResponseDTO;
 import proyecto.cliente.dto.LoginRequestDTO;
@@ -18,6 +22,9 @@ import proyecto.cliente.service.ClienteService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -36,26 +43,35 @@ public class ClienteController {
     @Autowired
     private InventarioFeingClient inventarioClient;
 
+    @Autowired
+    private ClienteModelAssembler assembler;
 
-    @GetMapping
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(summary = "Obtiene todos los clientes", description = "Obtiene una lista con todos los clientes registrados")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Operacion exitosa"),
             @ApiResponse(responseCode = "404", description = "No se encontraron clientes registrados")
     })
-    public List<ClienteResponseDTO> getClientes(){
-        return clienteService.getClientes();
+    public CollectionModel<EntityModel<ClienteResponseDTO>> getClientes(){
+        List<EntityModel<ClienteResponseDTO>> clientes = clienteService.getClientes().stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
+
+        return CollectionModel.of(clientes,
+                linkTo(methodOn(ClienteController.class).getClientes()).withSelfRel());
     }
 
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}", produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(summary = "Obtiene un cliente por Id", description = "Obtiene un cliente por su Id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Cliente encontrado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "No se encontro cliente con ese Id")
+            @ApiResponse(responseCode = "400", description = "No se encontro cliente con ese Id")
     })
-    public ResponseEntity<?> getById(@PathVariable Long id){
-        return ResponseEntity.ok(clienteService.getClienteById(id));
+    public EntityModel<ClienteResponseDTO> getById(@PathVariable Long id){
+        ClienteResponseDTO cliente = clienteService.getClienteById(id);
+        return assembler.toModel(cliente);
     }
 
 

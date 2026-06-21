@@ -47,7 +47,7 @@ public class Product {
 
     //agregar mas categorias de ser necesario
     public enum Categorias {
-            Despensa, Carnes, Lacteos, Limpieza
+        Despensa, Carnes, Lacteos, Limpieza
     }
 
 }

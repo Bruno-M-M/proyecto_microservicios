@@ -40,9 +40,8 @@ public class Product {
     @Column(nullable = false, length = 4)
     private Integer stock;
 
-    @NotBlank(message = "El producto debe pertenecer a alguna categoria")
-    @Size(max = 50)
-    @Column(nullable = false, length = 50)
+    @NotNull(message = "El producto debe pertenecer a alguna categoria")
+    @Column(nullable = false)
     private Categorias categoria;
 
     //agregar mas categorias de ser necesario

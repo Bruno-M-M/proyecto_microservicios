@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: pago-service
+          uri: lb://METODO_DE_PAGO
+          predicates:
+            - Path=/api/v1/boletas/**
+
+        - id: carrito-service        # ← AGREGAR ESTO
+          uri: lb://Carrito_compras
+          predicates:
+            - Path=/api/v1/Carrito/**
+
+        - id: cliente-service
+          uri: lb://cliente
+          predicates:
+            - Path=/api/clientes/**
+
+        - id: inventario-service
+          uri: lb://inventario
+          predicates:
+            - Path=/api/products/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

@@ -58,16 +58,21 @@ public class ProductController {
         return assembler.toModel(product);
     }
 
-    @GetMapping("/categoria/{categoria}")
+    @GetMapping(value = "/categoria/{categoria}", produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(summary = "Obtiene productos por categoria", description = "Obtiene todos los productos que pertenezcan a la categoria")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Categoria listada exitosamente"),
             @ApiResponse(responseCode = "404", description = "No existe esa categora")
     })
-    public List<ProductResponseDTO> getProductByCategory(@PathVariable String categoria){
-        return productService.getProductByCategory(categoria);
-    }
+    public CollectionModel<EntityModel<ProductResponseDTO>> getProductByCategory(@PathVariable String categoria){
+        List<EntityModel<ProductResponseDTO>> products = productService.getProductByCategory(categoria).stream()
+                .map(assembler::toModel)
+                .collect(Collectors.toList());
 
+        return CollectionModel.of(products,
+                linkTo(methodOn(ProductController.class).getProductByCategory(categoria)).withSelfRel(),
+                linkTo(methodOn(ProductController.class).getAllProduct()).withRel("products"));
+    }
     @PostMapping
     @Operation(summary = "Agrega un producto", description = "Agrega un producto a la base de datos con sus datos")
     @ApiResponses(value = {

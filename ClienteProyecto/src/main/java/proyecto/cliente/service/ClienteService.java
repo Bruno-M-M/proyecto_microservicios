@@ -1,7 +1,6 @@
 package proyecto.cliente.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import proyecto.cliente.dto.ClienteMapper;
@@ -44,7 +43,7 @@ public class ClienteService {
             throw new RuntimeException("Ya existe un cliente con este email.");
         }
         Cliente cliente = mapper.toEntity(dto);
-        cliente.setContraseña(passwordEncoder.encode(dto.getContraseña()));
+        cliente.setContrasenia(passwordEncoder.encode(dto.getContrasenia()));
         return mapper.toResponse(clienteRepository.save(cliente));
     }
 
@@ -52,7 +51,7 @@ public class ClienteService {
         Cliente cliente = clienteRepository.findByCorreo(dto.getCorreo());
         if (cliente == null)
             throw new RuntimeException("Correo no registrado");
-        if (!passwordEncoder.matches(dto.getContraseña(), cliente.getContraseña())){
+        if (!passwordEncoder.matches(dto.getContrasenia(), cliente.getContrasenia())){
             throw new RuntimeException("Contraseña incorrecta");
         }
         return mapper.toResponse(cliente);
@@ -67,7 +66,7 @@ public class ClienteService {
         antiguo.setCorreo(dto.getCorreo());
         antiguo.setDireccion(dto.getDireccion());
         antiguo.setTelefono(dto.getTelefono());
-        antiguo.setContraseña(passwordEncoder.encode(dto.getContraseña()));
+        antiguo.setContrasenia(passwordEncoder.encode(dto.getContrasenia()));
         return mapper.toResponse(clienteRepository.save(antiguo));
     }
 

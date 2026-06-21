@@ -48,5 +48,5 @@ public class Cliente {
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "Minimo 6 caracteres")
     @Column(nullable = false)
-    private String contraseña;
+    private String contrasenia;
 }

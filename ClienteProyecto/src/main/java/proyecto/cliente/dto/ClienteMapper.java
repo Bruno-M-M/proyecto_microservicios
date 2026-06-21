@@ -26,7 +26,7 @@ public class ClienteMapper {
         cliente.setCorreo(dto.getCorreo());
         cliente.setDireccion(dto.getDireccion());
         cliente.setTelefono(dto.getTelefono());
-        cliente.setContraseña(dto.getContraseña());
+        cliente.setContrasenia(dto.getContrasenia());
         return cliente;
     }
 }

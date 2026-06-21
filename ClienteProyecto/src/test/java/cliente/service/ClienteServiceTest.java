@@ -63,7 +63,7 @@ class ClienteServiceTest {
         requestDTO.setCorreo("br.mateluna@duocuc.cl");
         requestDTO.setDireccion("Calle quinta vergara 666");
         requestDTO.setTelefono(949000000);
-        requestDTO.setContraseña("abc123.");
+        requestDTO.setContrasenia("abc123.");
     }
 
     @Test
@@ -122,7 +122,7 @@ class ClienteServiceTest {
     void registrar_cuandoCorreoNoExiste_deberiaRegistrarCliente() {
         when(clienteRepository.existsByCorreo(requestDTO.getCorreo())).thenReturn(false);
         when(mapper.toEntity(requestDTO)).thenReturn(cliente);
-        when(passwordEncoder.encode(requestDTO.getContraseña())).thenReturn("hashEncriptado123");
+        when(passwordEncoder.encode(requestDTO.getContrasenia())).thenReturn("hashEncriptado123");
         when(clienteRepository.save(cliente)).thenReturn(cliente);
         when(mapper.toResponse(cliente)).thenReturn(responseDTO);
 
@@ -148,10 +148,10 @@ class ClienteServiceTest {
     void login_cuandoCredencialesCorrectas_deberiaRetornarCliente() {
         LoginRequestDTO loginDTO = new LoginRequestDTO();
         loginDTO.setCorreo("br.mateluna@duocuc.cl");
-        loginDTO.setContraseña("abc123.");
+        loginDTO.setContrasenia("abc123.");
 
         when(clienteRepository.findByCorreo(loginDTO.getCorreo())).thenReturn(cliente);
-        when(passwordEncoder.matches(loginDTO.getContraseña(), cliente.getContraseña())).thenReturn(true);
+        when(passwordEncoder.matches(loginDTO.getContrasenia(), cliente.getContrasenia())).thenReturn(true);
         when(mapper.toResponse(cliente)).thenReturn(responseDTO);
 
         ClienteResponseDTO resultado = clienteService.login(loginDTO);
@@ -164,7 +164,7 @@ class ClienteServiceTest {
     void login_cuandoCorreoNoRegistrado_deberiaLanzarExcepcion() {
         LoginRequestDTO loginDTO = new LoginRequestDTO();
         loginDTO.setCorreo("noexiste@correo.cl");
-        loginDTO.setContraseña("abc123.");
+        loginDTO.setContrasenia("abc123.");
 
         when(clienteRepository.findByCorreo(loginDTO.getCorreo())).thenReturn(null);
 
@@ -178,10 +178,10 @@ class ClienteServiceTest {
     void login_cuandoContraseñaIncorrecta_deberiaLanzarExcepcion() {
         LoginRequestDTO loginDTO = new LoginRequestDTO();
         loginDTO.setCorreo("br.mateluna@duocuc.cl");
-        loginDTO.setContraseña("incorrecta");
+        loginDTO.setContrasenia("incorrecta");
 
         when(clienteRepository.findByCorreo(loginDTO.getCorreo())).thenReturn(cliente);
-        when(passwordEncoder.matches(loginDTO.getContraseña(), cliente.getContraseña())).thenReturn(false);
+        when(passwordEncoder.matches(loginDTO.getContrasenia(), cliente.getContrasenia())).thenReturn(false);
 
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> clienteService.login(loginDTO));
@@ -198,10 +198,10 @@ class ClienteServiceTest {
         update.setCorreo("nuevo@correo.cl");
         update.setDireccion("Nueva direccion 123");
         update.setTelefono(912345678);
-        update.setContraseña("nuevaPass1");
+        update.setContrasenia("nuevaPass1");
 
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
-        when(passwordEncoder.encode(update.getContraseña())).thenReturn("nuevoHash");
+        when(passwordEncoder.encode(update.getContrasenia())).thenReturn("nuevoHash");
         when(clienteRepository.save(any(Cliente.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(mapper.toResponse(any(Cliente.class))).thenAnswer(invocation -> {
             Cliente c = invocation.getArgument(0);

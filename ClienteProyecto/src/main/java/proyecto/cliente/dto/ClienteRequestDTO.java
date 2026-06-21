@@ -31,5 +31,5 @@ public class ClienteRequestDTO {
 
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "Minimo 6 caracteres")
-    private String contraseña;
+    private String contrasenia;
 }

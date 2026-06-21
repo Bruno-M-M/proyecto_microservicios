@@ -28,7 +28,7 @@ public class DataLoader implements CommandLineRunner {
 
         for (int i = 0; i < 10; i++){
             String correo = faker.internet().emailAddress();
-            String passwordPlano = faker.internet().password();
+            String passwordPlano = faker.text().text();
 
             Cliente cliente = new Cliente();
             cliente.setRun(faker.number().numberBetween(1,30000000));
@@ -37,7 +37,7 @@ public class DataLoader implements CommandLineRunner {
             cliente.setCorreo(correo);
             cliente.setDireccion(faker.pokemon().location());
             cliente.setTelefono(faker.number().numberBetween(100000000,999999999));
-            cliente.setContraseña(passwordEncoder.encode(passwordPlano));
+            cliente.setContrasenia(passwordEncoder.encode(passwordPlano));
             clienteRepository.save(cliente);
 
             log.info("    correo: {} | password: {}", correo, passwordPlano);

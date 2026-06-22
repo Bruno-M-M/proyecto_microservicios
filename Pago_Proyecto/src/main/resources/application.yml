@@ -21,11 +21,16 @@ server:
 
 microservicio:
   carrito:
-    url: http://CARRITO_COMPRAS/api/v1/Carrito
+    url: http://localhost:8083/api/v1/Carrito
   clientes:
-    url: http://CLIENTE/api/clientes
+    url: http://localhost:8082/api/clientes
 
 springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /doc/swagger-ui.html
   hateoasRestHandlerMappingEnabled: false
 eureka:
   client:

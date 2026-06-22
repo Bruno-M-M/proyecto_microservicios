@@ -59,7 +59,7 @@ public class ClienteService {
 
     public ClienteResponseDTO updateCliente(Long id, ClienteRequestDTO dto){
         Cliente antiguo = clienteRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("Cliente no encontrado: " + id));
+                .orElseThrow(()-> new RuntimeException("Cliente no encontrado: " + id));;
         antiguo.setRun(dto.getRun());
         antiguo.setDv(dto.getDv());
         antiguo.setNombre(dto.getNombre());

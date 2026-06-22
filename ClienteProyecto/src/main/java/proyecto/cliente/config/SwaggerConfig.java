@@ -13,7 +13,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API 2026 Clientes")
-                        .version("1.11")
+                        .version("1.9")
                         .description("Documentacion de la API para el sistema de almacenacionto de datos del CLiente")
                 );
     }

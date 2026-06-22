@@ -219,7 +219,7 @@ class ClienteControllerTest {
     @DisplayName("getMisPedidos - Debe delegar en CarritoFeingCliente")
     void getMisPedidos_ShouldReturnPedidos() {
         when(clienteService.getClienteById(1L)).thenReturn(responseDTO);
-        when(carritoCliente.getPedidosDelCliente(1L)).thenReturn(List.of());
+        when(carritoCliente.getPedidosDelCliente(1L)).thenReturn(Map.of());
 
         ResponseEntity<?> resultado = clienteController.getMisPedidos(1L);
 

@@ -25,9 +25,9 @@ spring:
 
 microservicio:
   clientes:
-    url: http://cliente/api/clientes      # <- minúsculas
+    url: http://localhost:8082/api/clientes
   inventario:
-    url: http://inventario/api/products   # <- minúsculas
+    url: http://localhost:8081/api/products
 
 springdoc:
   api-docs:

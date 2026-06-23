@@ -9,13 +9,16 @@ import com.Pago.Metodo_de_pago.DTO.CarritoDetalleDTO;
 import com.Pago.Metodo_de_pago.Model.MetodoPago;
 import com.Pago.Metodo_de_pago.Repostory.BoletaRepository;
 import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class BoletaService {
     private static final double IVA_RATE = 0.19;
@@ -28,7 +31,6 @@ public class BoletaService {
 
     @Autowired
     private ClienteFeingClient clienteClient;
-
 
     private BoletaResponseDTO toResponse(MetodoPago boleta) {
         List<Long> ids = Arrays.stream(boleta.getPedidosIds().split(","))
@@ -43,18 +45,17 @@ public class BoletaService {
             pedidos = List.of();
         }
 
-        // Filtrar los pedidos que corresponden a esta boleta y aplanar sus items
         List<BoletaItemDTO> items = pedidos.stream()
                 .filter(p -> ids.contains(p.getPedidoId()))
                 .flatMap(p -> p.getItems() != null ? p.getItems().stream()
-                        .map(item -> new BoletaItemDTO(
-                                p.getPedidoId(),
-                                item.getProductoNombre(),
-                                item.getProductoCategoria(),
-                                item.getCantidad(),
-                                item.getProductoPrecio(),
-                                item.getSubtotal()
-                        )) : java.util.stream.Stream.empty())
+                                                     .map(item -> new BoletaItemDTO(
+                                                             p.getPedidoId(),
+                                                             item.getProductoNombre(),
+                                                             item.getProductoCategoria(),
+                                                             item.getCantidad(),
+                                                             item.getProductoPrecio(),
+                                                             item.getSubtotal()
+                                                     )) : java.util.stream.Stream.empty())
                 .collect(Collectors.toList());
 
         return new BoletaResponseDTO(
@@ -77,6 +78,7 @@ public class BoletaService {
 
     public BoletaResponseDTO emitirBoleta(BoletaRequestDTO request) {
 
+        // 1. Validar que el cliente existe
         try {
             Boolean existe = clienteClient.existsById(request.getClienteId());
             if (!Boolean.TRUE.equals(existe)) {
@@ -88,6 +90,7 @@ public class BoletaService {
             throw new RuntimeException("Error al conectar con el servicio de clientes: " + e.getMessage());
         }
 
+        // 2. Obtener pedidos del cliente desde el Carrito
         List<CarritoDetalleDTO> todosPedidos;
         try {
             todosPedidos = new java.util.ArrayList<>(carritoClient.getPedidosDelCliente(request.getClienteId()).getContent());
@@ -97,12 +100,12 @@ public class BoletaService {
             throw new RuntimeException("Error al conectar con el servicio de Carrito: " + e.getMessage());
         }
 
-        // Filtrar solo pedidos PAGADO
+        // 3. Filtrar solo los CONFIRMADOS
         List<CarritoDetalleDTO> pedidosConfirmados = todosPedidos.stream()
                 .filter(p -> "CONFIRMADO".equalsIgnoreCase(p.getEstadoPedido()))
                 .collect(Collectors.toList());
 
-        // Si se especificaron IDs concretos, filtrar por ellos
+        // 4. Si se especificaron IDs concretos, filtrar por ellos
         if (request.getPedidosIds() != null && !request.getPedidosIds().isEmpty()) {
             pedidosConfirmados = pedidosConfirmados.stream()
                     .filter(p -> request.getPedidosIds().contains(p.getPedidoId()))
@@ -115,25 +118,24 @@ public class BoletaService {
                             "Confirme los pedidos en el Carrito antes de emitir una boleta.");
         }
 
-        // Aplanar todos los items de todos los pedidos confirmados
+        // 5. Construir items y calcular totales
         List<BoletaItemDTO> items = pedidosConfirmados.stream()
                 .flatMap(p -> p.getItems() != null ? p.getItems().stream()
-                        .map(item -> new BoletaItemDTO(
-                                p.getPedidoId(),
-                                item.getProductoNombre(),
-                                item.getProductoCategoria(),
-                                item.getCantidad(),
-                                item.getProductoPrecio(),
-                                item.getSubtotal()
-                        )) : java.util.stream.Stream.empty())
+                                                     .map(item -> new BoletaItemDTO(
+                                                             p.getPedidoId(),
+                                                             item.getProductoNombre(),
+                                                             item.getProductoCategoria(),
+                                                             item.getCantidad(),
+                                                             item.getProductoPrecio(),
+                                                             item.getSubtotal()
+                                                     )) : java.util.stream.Stream.empty())
                 .collect(Collectors.toList());
 
         double totalNeto   = items.stream().mapToDouble(BoletaItemDTO::getSubtotal).sum();
         double iva         = Math.round(totalNeto * IVA_RATE * 100.0) / 100.0;
         double totalConIva = Math.round((totalNeto + iva) * 100.0) / 100.0;
 
-        CarritoDetalleDTO primero = pedidosConfirmados.get(0);
-
+        // 6. Validar y parsear método de pago
         MetodoPago.TipoPago tipoPago;
         try {
             tipoPago = MetodoPago.TipoPago.valueOf(request.getMetodoPago().toUpperCase());
@@ -143,6 +145,8 @@ public class BoletaService {
                             "'. Use: EFECTIVO, DEBITO, CREDITO, TRANSFERENCIA");
         }
 
+        // 7. Guardar la boleta
+        CarritoDetalleDTO primero = pedidosConfirmados.get(0);
         String pedidosIdsStr = pedidosConfirmados.stream()
                 .map(p -> p.getPedidoId().toString())
                 .collect(Collectors.joining(","));
@@ -163,16 +167,17 @@ public class BoletaService {
         boleta.setPedidosIds(pedidosIdsStr);
         boletaRepository.save(boleta);
 
-        // Marcar cada pedido como PAGADO en el Carrito
+        // 8. Marcar cada pedido como PAGADO en el Carrito
         for (CarritoDetalleDTO pedido : pedidosConfirmados) {
             try {
                 carritoClient.marcarComoPagado(pedido.getPedidoId());
+                log.info("✅ Pedido {} marcado como PAGADO en Carrito", pedido.getPedidoId());
             } catch (Exception e) {
-                System.err.println("Advertencia: no se pudo marcar como PAGADO el pedido "
-                        + pedido.getPedidoId() + ": " + e.getMessage());
+                log.warn("⚠️ No se pudo marcar como PAGADO el pedido {}: {}", pedido.getPedidoId(), e.getMessage());
             }
         }
 
+        // 9. Retornar la boleta generada
         return new BoletaResponseDTO(
                 boleta.getId(),
                 boleta.getFechaEmision(),

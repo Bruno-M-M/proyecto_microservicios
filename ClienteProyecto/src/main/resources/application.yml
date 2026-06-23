@@ -1,5 +1,0 @@
-spring:
-  application:
-    name: cliente
-  profiles:
-    active: dev  #test o dev

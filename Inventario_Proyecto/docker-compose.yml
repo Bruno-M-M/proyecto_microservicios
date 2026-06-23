@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db_inventario_proyecto:
+    image: mysql:8.4
+    container_name: db_inventario_proyecto
+    environment:
+      MYSQL_DATABASE: db_inventario_proyecto
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  inventario-service:
+    build: .
+    container_name: inventario_service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://db_inventario_proyecto:3306/db_inventario_proyecto
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD:
+    depends_on:
+      db_inventario_proyecto:
+        condition: service_healthy

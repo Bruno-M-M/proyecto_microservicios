@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db_carrito:
+    image: mysql:8.4
+    container_name: db_carrito
+    environment:
+      MYSQL_DATABASE: db_carrito_compras
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  carrito-service:
+    build: .
+    container_name: carrito_service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db_carrito:3306/db_Carrito_compras
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD:
+    depends_on:
+      db_carrito:
+        condition: service_healthy

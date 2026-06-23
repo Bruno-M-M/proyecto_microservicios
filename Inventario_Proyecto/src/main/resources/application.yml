@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: inventario
+  profiles:
+    active: dev   #test o dev

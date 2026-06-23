@@ -1,4 +1,4 @@
-Version 1.12
+Version 1.13
 
 Correxion de errores en feingCliente de todos los microservicios. 
 Se migro application.properties a application.yml en microservicio de pago y carrito. 

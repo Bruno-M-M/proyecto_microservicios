@@ -13,13 +13,21 @@ public class CarritoModelAssembler implements RepresentationModelAssembler<Carri
 
     @Override
     public EntityModel<CarritoDetalleDTO> toModel(CarritoDetalleDTO carrito) {
-        return EntityModel.of(carrito,
+        EntityModel<CarritoDetalleDTO> model = EntityModel.of(carrito,
                 linkTo(methodOn(CarritoController.class).getTodo()).withRel("todos"),
                 linkTo(methodOn(CarritoController.class).getByCliente(carrito.getClienteId())).withRel("carrito-cliente"),
                 linkTo(methodOn(CarritoController.class).confirmar(carrito.getPedidoId())).withRel("confirmar"),
                 linkTo(methodOn(CarritoController.class).cancelar(carrito.getPedidoId())).withRel("cancelar"),
-                linkTo(methodOn(CarritoController.class).marcarComoPagado(carrito.getPedidoId())).withRel("pagar"),
-                linkTo(methodOn(CarritoController.class).eliminar(carrito.getPedidoId())).withRel("eliminar")
+                linkTo(methodOn(CarritoController.class).eliminar(carrito.getPedidoId())).withRel("eliminar"),
+                linkTo(methodOn(CarritoController.class).marcarComoPagado(carrito.getPedidoId())).withRel("pagar")
         );
+
+        if (carrito.getClienteId() != null) {
+            model.add(linkTo(methodOn(CarritoController.class)
+                    .getEstadisticasAnio(carrito.getClienteId(), 2025))
+                    .withRel("estadisticas-anio"));
+        }
+
+        return model;
     }
 }

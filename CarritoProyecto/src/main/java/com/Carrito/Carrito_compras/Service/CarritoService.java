@@ -7,6 +7,7 @@ import com.Carrito.Carrito_compras.Exception.ResourceNotFound;
 import com.Carrito.Carrito_compras.Model.Carrito;
 import com.Carrito.Carrito_compras.Model.CarritoItem;
 import com.Carrito.Carrito_compras.Repository.CarritoRepository;
+import com.Carrito.Carrito_compras.Client.PagoFeingClient;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,30 @@ public class CarritoService {
         } catch (Exception e) {
             throw new RuntimeException("Error al verificar stock: " + e.getMessage());
         }
+    }
+
+    public CarritoDetalleDTO marcarComoPagado(Long id) {
+        Carrito carrito = carritoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con ID: " + id));
+
+        if (carrito.getEstado() == Carrito.EstadoPedido.PAGADO) {
+            return construirDetalle(carrito);
+        }
+        if (carrito.getEstado() == Carrito.EstadoPedido.PENDIENTE) {
+            throw new RuntimeException("El pedido debe ser CONFIRMADO antes de pagarse.");
+        }
+        if (carrito.getEstado() == Carrito.EstadoPedido.CANCELADO) {
+            throw new RuntimeException("No se puede pagar un pedido CANCELADO.");
+        }
+
+
+        for (CarritoItem item : carrito.getItems()) {
+            descontarStock(item.getProductoId(), item.getCantidad());
+        }
+
+        carrito.setEstado(Carrito.EstadoPedido.PAGADO);
+        carritoRepository.save(carrito);
+        return construirDetalle(carrito);
     }
 
     private ProductoDTO obtenerProducto(Long productoId) {
@@ -173,24 +198,28 @@ public class CarritoService {
         return construirDetalle(carrito);
     }
 
+    @Autowired
+    private PagoFeingClient pagoClient;
+
     public CarritoDetalleDTO confirmar(Long id) {
         Carrito carrito = carritoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
 
         if (carrito.getEstado() != Carrito.EstadoPedido.PENDIENTE) {
             throw new RuntimeException("Solo se pueden confirmar pedidos en estado PENDIENTE.");
         }
 
-        for (CarritoItem item : carrito.getItems()) {
-            if (!verificarStock(item.getProductoId(), item.getCantidad())) {
-                throw new RuntimeException(
-                        "Stock insuficiente al confirmar para producto ID: " + item.getProductoId());
-            }
-        }
 
         carrito.setEstado(Carrito.EstadoPedido.CONFIRMADO);
         carrito.setFechaConfirmacion(LocalDateTime.now());
         carritoRepository.save(carrito);
+
+        try {
+            pagoClient.notificarConfirmacion(carrito.getClienteId(), carrito.getId());
+        } catch (Exception e) {
+            System.err.println(" No se pudo notificar a Pago: " + e.getMessage());
+        }
+
         return construirDetalle(carrito);
     }
 
@@ -209,30 +238,7 @@ public class CarritoService {
         return construirDetalle(carrito);
     }
 
-    public CarritoDetalleDTO marcarComoPagado(Long id) {
-        Carrito carrito = carritoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con ID: " + id));
 
-        if (carrito.getEstado() == Carrito.EstadoPedido.PAGADO) {
-            return construirDetalle(carrito);
-        }
-        if (carrito.getEstado() == Carrito.EstadoPedido.PENDIENTE) {
-            throw new RuntimeException(
-                    "El pedido debe ser CONFIRMADO antes de pagarse. Confirme el pedido primero.");
-        }
-        if (carrito.getEstado() == Carrito.EstadoPedido.CANCELADO) {
-            throw new RuntimeException("No se puede pagar un pedido CANCELADO.");
-        }
-
-        for(CarritoItem item : carrito.getItems()){
-            descontarStock(item.getProductoId(), item.getCantidad());
-        }
-
-
-        carrito.setEstado(Carrito.EstadoPedido.PAGADO);
-        carritoRepository.save(carrito);
-        return construirDetalle(carrito);
-    }
 
 
     public void eliminar(Long id) {

@@ -156,27 +156,7 @@ public class CarritoController {
     public ResponseEntity<EntityModel<CarritoDetalleDTO>> cancelar(@PathVariable Long id) {
         return ResponseEntity.ok(carritoAssembler.toModel(carritoService.cancelar(id)));
     }
-    /*****************************************************************************/
-    @Operation(
-            summary = "Marcar pedido como pagado",
-            description = "Cambia el estado del pedido a PAGADO. Solo aplica sobre pedidos CONFIRMADOS."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Pedido marcado como pagado exitosamente",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = CarritoDetalleDTO.class)
-                    )
-            ),
-            @ApiResponse(responseCode = "404", description = "Pedido no encontrado", content = @Content),
-            @ApiResponse(responseCode = "400", description = "El pedido no puede marcarse como pagado en su estado actual", content = @Content)
-    })
-    @PutMapping("/{id}/pagar")
-    public ResponseEntity<EntityModel<CarritoDetalleDTO>> marcarComoPagado(@PathVariable Long id) {
-        return ResponseEntity.ok(carritoAssembler.toModel(carritoService.marcarComoPagado(id)));
-    }
+
 
     /*********************************************************************************/
     @Operation(
@@ -224,5 +204,22 @@ public class CarritoController {
         return ResponseEntity.ok(Map.of(
                 "clienteId", clienteId, "anio", anio,
                 "totalPedidosConfirmados", total));
+    }
+
+
+    @Operation(
+            summary = "Marcar pedido como PAGADO (solo llamado interno desde Pago)",
+            description = "Endpoint interno usado por el microservicio de Pago. No debe ser llamado directamente por el usuario."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pedido marcado como PAGADO correctamente"),
+            @ApiResponse(responseCode = "404", description = "Pedido no encontrado"),
+            @ApiResponse(responseCode = "400", description = "No se puede pagar en este estado")
+    })
+    @PutMapping("/{id}/pagar")
+    public ResponseEntity<EntityModel<CarritoDetalleDTO>> marcarComoPagado(@PathVariable Long id) {
+        return ResponseEntity.ok(
+                carritoAssembler.toModel(carritoService.marcarComoPagado(id))
+        );
     }
 }

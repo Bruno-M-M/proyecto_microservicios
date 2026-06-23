@@ -1,41 +1,37 @@
 package Metodo_de_pago.Controller;
 
-import com.Pago.Metodo_de_pago.DTO.*;
-import com.Pago.Metodo_de_pago.Model.MetodoPago;
-import com.Pago.Metodo_de_pago.Repostory.BoletaRepository;
+import com.Pago.Metodo_de_pago.Controller.BoletaController;
+import com.Pago.Metodo_de_pago.DTO.BoletaRequestDTO;
+import com.Pago.Metodo_de_pago.DTO.BoletaResponseDTO;
 import com.Pago.Metodo_de_pago.Service.BoletaService;
-import com.Pago.Metodo_de_pago.Client.CarritoFeingClient;
-import com.Pago.Metodo_de_pago.Client.ClienteFeingClient;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.hateoas.CollectionModel;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest(classes = com.Pago.Metodo_de_pago.MetodoDePagoApplication.class)
+@ExtendWith(MockitoExtension.class)
 public class BoletaControllerTest {
-    @Autowired
+
+    @Mock
     private BoletaService boletaService;
 
-    @MockitoBean
-    private BoletaRepository boletaRepository;
-
-    @MockitoBean
-    private CarritoFeingClient carritoClient;
-
-    @MockitoBean
-    private ClienteFeingClient clienteClient;
+    @InjectMocks
+    private BoletaController boletaController;
 
     private Faker faker;
 
@@ -44,344 +40,186 @@ public class BoletaControllerTest {
         faker = new Faker();
     }
 
+    // ─── Helper ────────────────────────────────────────────────────────────────
 
-
-    private MetodoPago crearBoletaFake() {
+    private BoletaResponseDTO crearBoletaResponseFake(String estado, String metodoPago) {
         double neto = faker.number().randomDouble(2, 5000, 200000);
         double iva  = Math.round(neto * 0.19 * 100.0) / 100.0;
 
-        MetodoPago boleta = new MetodoPago();
-        boleta.setId(faker.number().randomNumber());
-        boleta.setClienteId((long) faker.number().numberBetween(1, 50));
-        boleta.setClienteNombre(faker.name().fullName());
-        boleta.setClienteRun(faker.numerify("########-#"));
-        boleta.setClienteCorreo(faker.internet().emailAddress());
-        boleta.setClienteDireccion(faker.address().fullAddress());
-        boleta.setClienteTelefono(faker.number().numberBetween(900000000, 999999999));
-        boleta.setTipoPago(MetodoPago.TipoPago.EFECTIVO);
-        boleta.setTotalNeto(neto);
-        boleta.setIva(iva);
-        boleta.setTotalConIva(Math.round((neto + iva) * 100.0) / 100.0);
-        boleta.setFechaEmision(LocalDateTime.now());
-        boleta.setEstado(MetodoPago.EstadoBoleta.EMITIDA);
-        boleta.setPedidosIds("1");
-        return boleta;
+        BoletaResponseDTO dto = new BoletaResponseDTO();
+        dto.setBoletaId(faker.number().numberBetween(1L, 1000L));
+        dto.setClienteId((long) faker.number().numberBetween(1, 50));
+        dto.setClienteNombre(faker.name().fullName());
+        dto.setClienteRun(faker.numerify("########-#"));
+        dto.setClienteCorreo(faker.internet().emailAddress());
+        dto.setClienteDireccion(faker.address().fullAddress());
+        dto.setClienteTelefono(faker.number().numberBetween(900000000, 999999999));
+        dto.setMetodoPago(metodoPago);
+        dto.setTotalNeto(neto);
+        dto.setIva(iva);
+        dto.setTotalConIva(Math.round((neto + iva) * 100.0) / 100.0);
+        dto.setFechaEmision(LocalDateTime.now());
+        dto.setEstado(estado);
+        dto.setItems(List.of());
+        return dto;
     }
 
-    private CarritoDetalleDTO crearCarritoConfirmadoFake(Long clienteId) {
-        CarritoItemDetalleDTO item = new CarritoItemDetalleDTO();
-        item.setProductoId(1L);
-        item.setProductoNombre(faker.commerce().productName());
-        item.setProductoCategoria(faker.commerce().department());
-        item.setProductoPrecio(faker.number().numberBetween(1000, 50000));
-        item.setCantidad(faker.number().numberBetween(1, 5));
-        item.setSubtotal((double) item.getProductoPrecio() * item.getCantidad());
-
-        CarritoDetalleDTO carrito = new CarritoDetalleDTO();
-        carrito.setPedidoId(1L);
-        carrito.setEstadoPedido("CONFIRMADO");
-        carrito.setClienteId(clienteId);
-        carrito.setClienteNombre(faker.name().fullName());
-        carrito.setClienteRun(faker.numerify("########-#"));
-        carrito.setClienteCorreo(faker.internet().emailAddress());
-        carrito.setClienteDireccion(faker.address().fullAddress());
-        carrito.setClienteTelefono(faker.number().numberBetween(900000000, 999999999));
-        carrito.setItems(List.of(item));
-        return carrito;
-    }
-
-
+    // ─── emitir ────────────────────────────────────────────────────────────────
 
     @Test
-    void getBoletas_debeRetornarListaDeBoletas() {
-        MetodoPago boleta1 = crearBoletaFake();
-        MetodoPago boleta2 = crearBoletaFake();
-
-        when(boletaRepository.findAll()).thenReturn(List.of(boleta1, boleta2));
-        when(carritoClient.getPedidosDelCliente(any())).thenReturn(CollectionModel.of(List.of()));
-
-        List<BoletaResponseDTO> resultado = boletaService.getBoletas();
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-        verify(boletaRepository, times(1)).findAll();
-    }
-
-    @Test
-    void getBoletas_sinDatos_debeRetornarListaVacia() {
-        when(boletaRepository.findAll()).thenReturn(List.of());
-
-        List<BoletaResponseDTO> resultado = boletaService.getBoletas();
-
-        assertNotNull(resultado);
-        assertTrue(resultado.isEmpty());
-    }
-
-    @Test
-    void getBoletaById_existente_debeRetornarBoleta() {
-        MetodoPago boleta = crearBoletaFake();
-
-        when(boletaRepository.findById(boleta.getId())).thenReturn(Optional.of(boleta));
-        when(carritoClient.getPedidosDelCliente(any())).thenReturn(CollectionModel.of(List.of()));
-
-        BoletaResponseDTO resultado = boletaService.getBoletaById(boleta.getId());
-
-        assertNotNull(resultado);
-        assertEquals(boleta.getClienteNombre(), resultado.getClienteNombre());
-        assertEquals(boleta.getTotalNeto(), resultado.getTotalNeto());
-    }
-
-    @Test
-    void getBoletaById_noExistente_debeLanzarExcepcion() {
-        Long idInexistente = faker.number().randomNumber();
-
-        when(boletaRepository.findById(idInexistente)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> boletaService.getBoletaById(idInexistente));
-
-        assertTrue(ex.getMessage().contains("Boleta no encontrada"));
-    }
-
-    @Test
-    void getBoletasByCliente_debeRetornarBoletasDelCliente() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-        MetodoPago boleta = crearBoletaFake();
-        boleta.setClienteId(clienteId);
-
-        when(boletaRepository.findByClienteId(clienteId)).thenReturn(List.of(boleta));
-        when(carritoClient.getPedidosDelCliente(any())).thenReturn(CollectionModel.of(List.of()));
-
-        List<BoletaResponseDTO> resultado = boletaService.getBoletasByCliente(clienteId);
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        verify(boletaRepository, times(1)).findByClienteId(clienteId);
-    }
-
-    @Test
-    void getBoletasByCliente_sinBoletas_debeRetornarListaVacia() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-
-        when(boletaRepository.findByClienteId(clienteId)).thenReturn(List.of());
-
-        List<BoletaResponseDTO> resultado = boletaService.getBoletasByCliente(clienteId);
-
-        assertNotNull(resultado);
-        assertTrue(resultado.isEmpty());
-        verify(boletaRepository, times(1)).findByClienteId(clienteId);
-    }
-
-
-
-    @Test
-    void anular_boletaEmitida_debeAnularla() {
-        MetodoPago boleta = crearBoletaFake();
-        boleta.setEstado(MetodoPago.EstadoBoleta.EMITIDA);
-
-        when(boletaRepository.findById(boleta.getId())).thenReturn(Optional.of(boleta));
-        when(boletaRepository.save(any())).thenReturn(boleta);
-        when(carritoClient.getPedidosDelCliente(any())).thenReturn(CollectionModel.of(List.of()));
-
-        BoletaResponseDTO resultado = boletaService.anular(boleta.getId());
-
-        assertEquals("ANULADA", resultado.getEstado());
-        verify(boletaRepository, times(1)).save(boleta);
-    }
-
-    @Test
-    void anular_boletaYaAnulada_debeLanzarExcepcion() {
-        MetodoPago boleta = crearBoletaFake();
-        boleta.setEstado(MetodoPago.EstadoBoleta.ANULADA);
-
-        when(boletaRepository.findById(boleta.getId())).thenReturn(Optional.of(boleta));
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> boletaService.anular(boleta.getId()));
-
-        assertTrue(ex.getMessage().contains("ya está anulada"));
-    }
-
-    @Test
-    void anular_debeGuardarExactamenteUnaVez() {
-        MetodoPago boleta = crearBoletaFake();
-        boleta.setEstado(MetodoPago.EstadoBoleta.EMITIDA);
-
-        when(boletaRepository.findById(boleta.getId())).thenReturn(Optional.of(boleta));
-        when(boletaRepository.save(any())).thenReturn(boleta);
-        when(carritoClient.getPedidosDelCliente(any())).thenReturn(CollectionModel.of(List.of()));
-
-        boletaService.anular(boleta.getId());
-
-        verify(boletaRepository, times(1)).save(boleta); // exactamente 1 vez
-        verify(boletaRepository, never()).findAll();      // nunca llamó findAll
-    }
-
-
-
-    @Test
-    void emitirBoleta_clienteNoExiste_debeLanzarExcepcion() {
+    @DisplayName("emitir: debe retornar 201 con la boleta creada")
+    void emitir_debeRetornar201ConBoleta() {
+        BoletaResponseDTO boleta = crearBoletaResponseFake("EMITIDA", "EFECTIVO");
         BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(faker.number().randomNumber());
+        request.setClienteId(boleta.getClienteId());
         request.setMetodoPago("EFECTIVO");
 
-        when(clienteClient.existsById(request.getClienteId())).thenReturn(false);
+        when(boletaService.emitirBoleta(any())).thenReturn(boleta);
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> boletaService.emitirBoleta(request));
+        ResponseEntity<BoletaResponseDTO> respuesta = boletaController.emitir(request);
 
-        assertTrue(ex.getMessage().contains("Cliente no encontrado"));
+        assertEquals(HttpStatus.CREATED, respuesta.getStatusCode());
+        assertNotNull(respuesta.getBody());
+        assertEquals("EMITIDA", respuesta.getBody().getEstado());
+        assertEquals("EFECTIVO", respuesta.getBody().getMetodoPago());
+        verify(boletaService, times(1)).emitirBoleta(any());
     }
 
     @Test
-    void emitirBoleta_sinPedidosConfirmados_debeLanzarExcepcion() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-
+    @DisplayName("emitir: debe propagar excepción si el service falla")
+    void emitir_debePropagar_ExcepcionDelService() {
         BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(clienteId);
-        request.setMetodoPago("DEBITO");
-
-        CarritoDetalleDTO pedidoPendiente = new CarritoDetalleDTO();
-        pedidoPendiente.setPedidoId(1L);
-        pedidoPendiente.setEstadoPedido("PENDIENTE");
-        pedidoPendiente.setClienteId(clienteId);
-
-        when(clienteClient.existsById(clienteId)).thenReturn(true);
-        when(carritoClient.getPedidosDelCliente(clienteId)).thenReturn(CollectionModel.of(List.of(pedidoPendiente)));
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> boletaService.emitirBoleta(request));
-
-        assertTrue(ex.getMessage().contains("CONFIRMADOS"));
-    }
-
-    @Test
-    void emitirBoleta_metodoPagoInvalido_debeLanzarExcepcion() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-        CarritoDetalleDTO carrito = crearCarritoConfirmadoFake(clienteId);
-
-        BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(clienteId);
-        request.setMetodoPago("BITCOIN");
-
-        when(clienteClient.existsById(clienteId)).thenReturn(true);
-        when(carritoClient.getPedidosDelCliente(clienteId)).thenReturn(CollectionModel.of(List.of(carrito)));
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> boletaService.emitirBoleta(request));
-
-        assertTrue(ex.getMessage().contains("Método de pago inválido"));
-    }
-
-    @Test
-    void emitirBoleta_exitosa_debeGuardarYRetornarBoleta() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-        CarritoDetalleDTO carrito = crearCarritoConfirmadoFake(clienteId);
-
-        BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(clienteId);
+        request.setClienteId(1L);
         request.setMetodoPago("EFECTIVO");
 
-        when(clienteClient.existsById(clienteId)).thenReturn(true);
-        when(carritoClient.getPedidosDelCliente(clienteId)).thenReturn(CollectionModel.of(List.of(carrito)));
-        when(boletaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(boletaService.emitirBoleta(any())).thenThrow(new RuntimeException("Cliente no encontrado"));
 
-        BoletaResponseDTO resultado = boletaService.emitirBoleta(request);
-
-        assertNotNull(resultado);
-        assertEquals("EMITIDA", resultado.getEstado());
-        assertEquals("EFECTIVO", resultado.getMetodoPago());
-        assertTrue(resultado.getTotalConIva() > resultado.getTotalNeto());
-        verify(boletaRepository, times(1)).save(any());
+        assertThrows(RuntimeException.class, () -> boletaController.emitir(request));
     }
-
-    @Test
-    void emitirBoleta_exitosa_ivaDebeSer19Porciento() {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-        CarritoDetalleDTO carrito = crearCarritoConfirmadoFake(clienteId);
-
-        BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(clienteId);
-        request.setMetodoPago("TRANSFERENCIA");
-
-        when(clienteClient.existsById(clienteId)).thenReturn(true);
-        when(carritoClient.getPedidosDelCliente(clienteId)).thenReturn(CollectionModel.of(List.of(carrito)));
-        when(boletaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        BoletaResponseDTO resultado = boletaService.emitirBoleta(request);
-
-        double ivaEsperado = Math.round(resultado.getTotalNeto() * 0.19 * 100.0) / 100.0;
-        assertEquals(ivaEsperado, resultado.getIva(), 0.01,
-                "El IVA debe ser exactamente el 19% del total neto");
-    }
-
-
 
     @ParameterizedTest
+    @DisplayName("emitir: debe funcionar con todos los tipos de pago válidos")
     @ValueSource(strings = {"EFECTIVO", "DEBITO", "CREDITO", "TRANSFERENCIA"})
-    void emitirBoleta_todosLosTiposDePagoValidos_debenFuncionar(String tipoPago) {
-        Long clienteId = (long) faker.number().numberBetween(1, 100);
-        CarritoDetalleDTO carrito = crearCarritoConfirmadoFake(clienteId);
-
+    void emitir_todosLosTiposDePagoValidos(String tipoPago) {
+        BoletaResponseDTO boleta = crearBoletaResponseFake("EMITIDA", tipoPago);
         BoletaRequestDTO request = new BoletaRequestDTO();
-        request.setClienteId(clienteId);
+        request.setClienteId(1L);
         request.setMetodoPago(tipoPago);
 
-        when(clienteClient.existsById(clienteId)).thenReturn(true);
-        when(carritoClient.getPedidosDelCliente(clienteId)).thenReturn(CollectionModel.of(List.of(carrito)));
-        when(boletaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(boletaService.emitirBoleta(any())).thenReturn(boleta);
 
-        BoletaResponseDTO resultado = boletaService.emitirBoleta(request);
+        ResponseEntity<BoletaResponseDTO> respuesta = boletaController.emitir(request);
 
-        assertNotNull(resultado);
-        assertEquals(tipoPago, resultado.getMetodoPago());
+        assertEquals(HttpStatus.CREATED, respuesta.getStatusCode());
+        assertEquals(tipoPago, respuesta.getBody().getMetodoPago());
     }
 
-
-
-    @Test
-    void boletaFake_totalConIva_debeSerMayorQueNeto() {
-        MetodoPago boleta = crearBoletaFake();
-
-        assertTrue(boleta.getTotalConIva() > boleta.getTotalNeto(),
-                "El total con IVA siempre debe ser mayor al neto");
-        assertTrue(boleta.getIva() > 0,
-                "El IVA no puede ser cero");
-    }
+    // ─── getAll ────────────────────────────────────────────────────────────────
 
     @Test
-    void boletaFake_correo_debeContenerArroba() {
-        MetodoPago boleta = crearBoletaFake();
+    @DisplayName("getAll: debe retornar 200 con lista de boletas")
+    void getAll_debeRetornarListaDeBoletas() {
+        BoletaResponseDTO b1 = crearBoletaResponseFake("EMITIDA", "EFECTIVO");
+        BoletaResponseDTO b2 = crearBoletaResponseFake("ANULADA", "DEBITO");
 
-        assertTrue(boleta.getClienteCorreo().contains("@"),
-                "El correo generado debe tener @");
+        when(boletaService.getBoletas()).thenReturn(List.of(b1, b2));
+
+        ResponseEntity<List<BoletaResponseDTO>> respuesta = boletaController.getAll();
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals(2, respuesta.getBody().size());
+        verify(boletaService, times(1)).getBoletas();
     }
 
     @Test
-    void boletaFake_telefono_debeEstarEnRangoCorrecto() {
-        MetodoPago boleta = crearBoletaFake();
+    @DisplayName("getAll: debe retornar 200 con lista vacía si no hay boletas")
+    void getAll_debeRetornarListaVacia() {
+        when(boletaService.getBoletas()).thenReturn(List.of());
 
-        assertTrue(boleta.getClienteTelefono() >= 900000000,
-                "El teléfono debe comenzar con 9");
-        assertTrue(boleta.getClienteTelefono() <= 999999999,
-                "El teléfono debe tener 9 dígitos");
+        ResponseEntity<List<BoletaResponseDTO>> respuesta = boletaController.getAll();
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertTrue(respuesta.getBody().isEmpty());
+    }
+
+    // ─── getById ───────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("getById: debe retornar 200 con la boleta encontrada")
+    void getById_debeRetornarBoleta() {
+        BoletaResponseDTO boleta = crearBoletaResponseFake("EMITIDA", "CREDITO");
+
+        when(boletaService.getBoletaById(boleta.getBoletaId())).thenReturn(boleta);
+
+        ResponseEntity<BoletaResponseDTO> respuesta = boletaController.getById(boleta.getBoletaId());
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertNotNull(respuesta.getBody());
+        assertEquals(boleta.getBoletaId(), respuesta.getBody().getBoletaId());
     }
 
     @Test
-    void boletaFake_estadoInicial_debeSerEmitida() {
-        MetodoPago boleta = crearBoletaFake();
+    @DisplayName("getById: debe propagar excepción si no existe")
+    void getById_debePropagar_ExcepcionSiNoExiste() {
+        when(boletaService.getBoletaById(999L)).thenThrow(new RuntimeException("Boleta no encontrada"));
 
-        assertEquals(MetodoPago.EstadoBoleta.EMITIDA, boleta.getEstado(),
-                "El estado inicial debe ser EMITIDA");
-        assertNotEquals(MetodoPago.EstadoBoleta.ANULADA, boleta.getEstado(),
-                "No debe estar ANULADA al crearse");
+        assertThrows(RuntimeException.class, () -> boletaController.getById(999L));
+    }
+
+    // ─── getByCliente ──────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("getByCliente: debe retornar 200 con boletas del cliente")
+    void getByCliente_debeRetornarBoletasDelCliente() {
+        Long clienteId = 5L;
+        BoletaResponseDTO boleta = crearBoletaResponseFake("EMITIDA", "TRANSFERENCIA");
+        boleta.setClienteId(clienteId);
+
+        when(boletaService.getBoletasByCliente(clienteId)).thenReturn(List.of(boleta));
+
+        ResponseEntity<List<BoletaResponseDTO>> respuesta = boletaController.getByCliente(clienteId);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals(1, respuesta.getBody().size());
+        assertEquals(clienteId, respuesta.getBody().get(0).getClienteId());
+        verify(boletaService, times(1)).getBoletasByCliente(clienteId);
     }
 
     @Test
-    void boletaFake_clienteId_debeSerPositivo() {
-        MetodoPago boleta = crearBoletaFake();
+    @DisplayName("getByCliente: debe retornar lista vacía si el cliente no tiene boletas")
+    void getByCliente_sinBoletas_debeRetornarListaVacia() {
+        when(boletaService.getBoletasByCliente(99L)).thenReturn(List.of());
 
-        assertTrue(boleta.getClienteId() > 0,
-                "El ID del cliente debe ser positivo");
+        ResponseEntity<List<BoletaResponseDTO>> respuesta = boletaController.getByCliente(99L);
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertTrue(respuesta.getBody().isEmpty());
+    }
+
+    // ─── anular ────────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("anular: debe retornar 200 con estado ANULADA")
+    void anular_debeRetornarBoletaAnulada() {
+        BoletaResponseDTO anulada = crearBoletaResponseFake("ANULADA", "EFECTIVO");
+
+        when(boletaService.anular(anulada.getBoletaId())).thenReturn(anulada);
+
+        ResponseEntity<BoletaResponseDTO> respuesta = boletaController.anular(anulada.getBoletaId());
+
+        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+        assertEquals("ANULADA", respuesta.getBody().getEstado());
+        verify(boletaService, times(1)).anular(anulada.getBoletaId());
+    }
+
+    @Test
+    @DisplayName("anular: debe propagar excepción si la boleta ya está anulada")
+    void anular_debePropagar_ExcepcionSiYaAnulada() {
+        when(boletaService.anular(999L)).thenThrow(new RuntimeException("ya está anulada"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> boletaController.anular(999L));
+
+        assertTrue(ex.getMessage().contains("ya está anulada"));
     }
 }
